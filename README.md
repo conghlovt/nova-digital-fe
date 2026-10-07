@@ -1,4 +1,4 @@
-﻿# NOVA DIGITAL — Bài test Frontend
+# NOVA DIGITAL — Bài test Frontend
 
 **Ứng viên:** Nguyễn Đức Chiến Công  
 **Đơn vị ra đề:** Công ty TNHH Giải pháp số Hoàng Hà
@@ -14,7 +14,7 @@ Website giới thiệu doanh nghiệp NOVA DIGITAL, triển khai từ thiết k�
 | Sơ đồ hoạt động | [Biểu đồ Activity Diagram](<Biểu đồ activity diagram.png>) |
 | Mã nguồn | [GitHub — nova-digital-fe](https://github.com/conghlovt/nova-digital-fe) |
 
-Repository hiện ở chế độ **private**. Người nhận cần được cấp quyền truy cập repository và quyền **View/Inspect** phù hợp trên Figma trước khi xem bài. Diagram được đính kèm dưới dạng PNG; theo đề, phần này cần do ứng viên tự vẽ, không sử dụng AI. Các phần khác, bao gồm code, được phép sử dụng AI.
+Repository ở chế độ **public**, có thể xem mã nguồn mà không cần cấp quyền riêng. Link Figma cần quyền **View/Inspect** phù hợp để người nhận xem thiết kế. Diagram được đính kèm dưới dạng PNG; theo đề, phần này cần do ứng viên tự vẽ, không sử dụng AI. Các phần khác, bao gồm code, được phép sử dụng AI.
 
 ## Đối chiếu yêu cầu bài test
 
