@@ -1,0 +1,498 @@
+---
+description: Quy tắc triển khai website doanh nghiệp NOVA DIGITAL theo bài test FE, bao gồm kiến trúc, chất lượng code, UI, trang chủ, pháp lý, hiệu suất, bảo mật, UX và SEO.
+globs: "**/*"
+alwaysApply: true
+---
+
+# NOVA DIGITAL — Quy tắc phát triển website dành cho Codex
+
+Phiên bản: 1.0 • Ngày: 07/10/2026 • Ngôn ngữ nội dung: tiếng Việt.
+
+## 0. Cách áp dụng, phạm vi và nguyên tắc làm việc
+
+### 0.1. Đọc file bằng Codex
+
+- Đây là tài liệu Markdown có YAML frontmatter, xuất đúng đuôi `.mdc` theo yêu cầu.
+- Không giả định Codex tự động đọc file `.mdc` hoặc thực thi `alwaysApply`/`globs`. Các trường này phục vụ công cụ hỗ trợ MDC; chúng không thay thế cơ chế hướng dẫn của Codex.
+- Đặt file ở `docs/rules/nova-website-codex-rules.mdc`. Trong `AGENTS.md` ở thư mục gốc dự án, thêm: “Trước khi thay đổi website, đọc và tuân thủ docs/rules/nova-website-codex-rules.mdc trong phạm vi công việc được giao.”
+- Nếu chưa có `AGENTS.md`, có thể yêu cầu trực tiếp: “Đọc file docs/rules/nova-website-codex-rules.mdc trước khi triển khai nhiệm vụ.”
+- Không ghi đè `AGENTS.md` hiện có. Ghép hướng dẫn mới và giữ quy tắc của repository.
+- Chỉ áp dụng các phần liên quan đến tác vụ; không xây thêm backend, CMS, đăng nhập hoặc trang mới khi chưa thuộc phạm vi người dùng yêu cầu.
+
+### 0.2. Nguồn thiết kế và yêu cầu
+
+- Figma: https://www.figma.com/design/U1p0d5MVJBZCjkUqPSWNRc
+- Desktop: frame `2:82`, chiều rộng 1440px. Mobile: frame `2:224`, chiều rộng 390px.
+- Figma là nguồn tham chiếu giao diện; đọc phiên bản hiện tại trước khi triển khai. Nếu không truy cập được, báo rõ và dùng tài liệu/ảnh đã được người dùng cung cấp, không giả vờ đã đọc.
+- Các thông số dưới đây là baseline triển khai, không phải khẳng định mọi chi tiết đã tồn tại trong Figma. Nếu nguồn mới khác baseline, ưu tiên chỉ dẫn mới của người dùng và ghi lại khác biệt có ảnh hưởng.
+- NOVA DIGITAL, logo khách hàng và `hello@nova.example` là nội dung minh họa. Không mô tả chúng là doanh nghiệp/khách hàng hoặc địa chỉ nhận thư thật.
+- Đề bắt buộc 2 phiên bản Desktop 1440px, Mobile 390px và 7 phần trang chủ. Các trang pháp lý, SEO và hardening ở đây là phạm vi mở rộng do người dùng yêu cầu, không phải yêu cầu gốc của nhà tuyển dụng.
+- Diagram phải do ứng viên tự vẽ, không dùng AI theo đề. Codex không tạo hoặc nhận là tác giả Diagram của bài nộp này.
+
+### 0.3. Mức độ quy tắc
+
+- **BẮT BUỘC**: phải đáp ứng trong phần code được giao; nếu bị chặn phải báo nguyên nhân.
+- **MỤC TIÊU**: ngân sách hoặc định hướng dự án; đo và báo kết quả, không tự tuyên bố đạt.
+- **CÓ ĐIỀU KIỆN**: áp dụng khi chức năng/hạ tầng tương ứng tồn tại; không dựng chức năng chỉ để thỏa checklist.
+- Ưu tiên chỉ dẫn hệ thống, nhà phát triển và người dùng; tiếp theo là hướng dẫn repository áp dụng trong phạm vi, yêu cầu đề và nguồn thiết kế được chấp thuận. Khi có mâu thuẫn quan trọng, nêu rõ thay vì tự đổi yêu cầu.
+- Thực hiện kiểm tra cần thiết, sửa lỗi phát sinh trong phạm vi và báo phần chưa xác minh. Không triển khai công khai, gửi email thật hoặc gửi dữ liệu thử tới dịch vụ bên ngoài chỉ vì cần kiểm tra giao diện.
+
+## 1. Kiến trúc website
+
+### 1.1. Lựa chọn nền tảng
+
+- BẮT BUỘC: kiểm tra `package.json`, lockfile, router, cấu hình, quy ước thư mục và công cụ kiểm tra trước khi sửa code. Giữ stack hiện có nếu phù hợp.
+- Không tự chuyển React sang Next.js, đổi package manager, nâng major dependencies hoặc thay cấu trúc toàn repository cho tác vụ nhỏ.
+- Dự án mới chưa có stack: baseline đề xuất TypeScript, React và công cụ build phù hợp. Website công khai cần SEO nên cân nhắc SSG/SSR hoặc prerender thay vì chỉ CSR; quyết định theo hosting và phạm vi thực tế.
+- Website bài test có thể là frontend tĩnh. Backend chỉ cần khi có form gửi thật, dữ liệu động hoặc chức năng được giao rõ ràng.
+- Không thêm Redux, microservices, CMS hoặc database cho nội dung doanh nghiệp tĩnh khi local state và data module đã đủ.
+
+### 1.2. Phân lớp và hướng phụ thuộc
+
+- Route/page ghép layout và các section; không chứa toàn bộ markup, API, schema và logic tương tác trong một file dài.
+- `components/ui`: thành phần trung lập như Button, IconButton, Input, Container.
+- `components/layout`: Header, MobileMenu, Footer; dùng chung giữa các trang.
+- `components/sections`: các section trang chủ; không gọi backend trực tiếp nếu có tầng service.
+- `features`: chức năng có state/validation riêng, ví dụ contact; không tạo feature khi chỉ có liên kết mailto.
+- `lib/services`: giao tiếp API; `lib/validation`: schema; `data`: nội dung cấu trúc; `styles`: token/global styles.
+- UI chung không import ngược page hoặc feature cụ thể. Không tạo vòng phụ thuộc.
+- Nội dung có cấu trúc được tách khỏi JSX: danh sách dịch vụ, lợi thế, navigation, thông tin pháp lý và metadata.
+
+Ví dụ cấu trúc tham khảo, điều chỉnh theo router đang dùng:
+
+```text
+src/
+  pages/ hoặc app/       # dùng đúng một mô hình router của dự án
+  components/
+    ui/                 # Button, IconButton, Container, FormField
+    layout/             # Header, MobileMenu, Footer
+    sections/           # Hero, SocialProof, About, Services, Advantages, Contact
+  features/contact/     # chỉ tạo nếu có form
+  data/                 # services, navigation, company, legal content
+  lib/
+    services/           # API client và adapter
+    validation/         # schema đầu vào
+    seo/                # metadata helpers nếu cần
+  styles/               # tokens, typography, global styles
+  assets/               # hình/font đi qua build pipeline
+public/                 # file public, không chứa secrets
+```
+
+### 1.3. Route và URL
+
+| Route | Vai trò | Phạm vi |
+|---|---|---|
+| `/` | Trang chủ đủ các section | Bắt buộc |
+| `/#about`, `/#services`, `/#advantages`, `/#contact` | Điều hướng trong trang chủ | Bắt buộc nếu menu/CTA tương ứng có mặt |
+| `/privacy-policy` | Chính sách quyền riêng tư | Theo yêu cầu mở rộng |
+| `/terms-of-use` | Điều khoản sử dụng | Theo yêu cầu mở rộng |
+| `/cookie-policy` | Chính sách cookie | Khi thực sự sử dụng cookie và cần giải thích riêng |
+| Trang 404 | Route không tồn tại | Bắt buộc trong phần routing |
+| `/services/[slug]` | Chi tiết dịch vụ | Chỉ khi được yêu cầu hoặc đã có nội dung được duyệt |
+
+- Dùng URL sạch, thống nhất trailing slash và cách viết slug. Không tạo `/desktop` và `/mobile` cho cùng một nội dung; responsive dùng chung URL.
+- Không dùng link `href="#"` như hành động thật. Link dịch vụ phải dẫn tới trang/section có thật; nếu chưa có chi tiết, đổi thành CTA liên hệ theo dịch vụ hoặc bỏ link.
+- Không hardcode hostname production trong nhiều component. Tập trung tại cấu hình đã xác minh.
+- Route lỗi không trả nội dung trang chủ như thể thành công. Với host hỗ trợ status HTTP, 404 phải trả 404.
+
+### 1.4. Ranh giới dữ liệu và môi trường
+
+- Cấu hình public và secrets phải tách biệt. Biến được bundler đưa vào client là dữ liệu công khai, không phải kho bí mật.
+- Cung cấp `.env.example` chỉ chứa tên biến và giá trị giả an toàn. Không commit `.env` thật.
+- Chỉ có một nguồn dữ liệu cho tên thương hiệu, email, navigation và dịch vụ.
+- Nếu có API, chuẩn hóa lỗi tại tầng service; dùng kiểu dữ liệu rõ ràng, timeout/cancel phù hợp và không tự retry thao tác gửi form có thể tạo bản ghi trùng.
+
+## 2. Quản lý chất lượng code
+
+### 2.1. Quy ước code
+
+- BẮT BUỘC: TypeScript strict nếu dự án dùng TypeScript; không dùng `any` để né lỗi. Dữ liệu không tin cậy bắt đầu là `unknown` rồi validate/narrow.
+- Component PascalCase, hooks bắt đầu `use`, biến/hàm camelCase; boolean có nghĩa rõ như `isMenuOpen`, `isSubmitting`.
+- Component có một trách nhiệm rõ; tách khi logic hoặc markup trở nên khó hiểu, không tách mọi dòng thành abstraction.
+- Props phải có type, state có phạm vi tối thiểu. Không dùng global state cho menu hoặc trạng thái một form.
+- Không lưu derived state nếu có thể tính từ props/state hiện tại. Không dùng effect chỉ để đồng bộ dữ liệu có thể tính trực tiếp.
+- Cleanup listener, observer và request phù hợp khi unmount. Không truy cập `window`/`document` tại module scope trong môi trường SSR.
+- Không mutate props hoặc state. Không dùng index làm key khi danh sách có định danh ổn định và có thể thay đổi thứ tự.
+- Không dùng `!important`, ép type hay tắt lint diện rộng để che lỗi. Ngoại lệ cục bộ phải có lý do cụ thể.
+- Không để dead code, import thừa, `console.log` debug, TODO không giải thích hoặc code thử trong bài nộp.
+- Chú thích giải thích lý do/tradeoff; tránh lặp lại code bằng lời.
+
+### 2.2. Dependencies và thay đổi
+
+- Dùng package manager tương ứng lockfile. Không tạo thêm lockfile của công cụ khác.
+- Ưu tiên dependency đã có; chỉ thêm thư viện khi giải quyết nhu cầu cụ thể mà cách hiện có không đáp ứng hợp lý.
+- Không sửa file generated/vendor/build output trực tiếp.
+- Diff phải tập trung vào nhiệm vụ; tránh format lại file không liên quan.
+- Không xóa code hoặc nội dung người dùng đang chỉnh để làm sạch working tree.
+- Khi giới thiệu abstraction mới, có ví dụ sử dụng thực trong code; không tạo helper chỉ cho trường hợp giả định.
+
+### 2.3. Kiểm tra phù hợp
+
+- Đọc script có thật trong package trước khi chạy; không đoán `npm run test` tồn tại.
+- Với thay đổi UI/routing: chạy lint, typecheck và production build nếu có; sửa lỗi do thay đổi gây ra.
+- Test hành vi có rủi ro: mở/đóng menu, link CTA, validation và trạng thái gửi form, route pháp lý/404.
+- Không viết test chỉ để khẳng định component chứa đúng một chuỗi hoặc sao chép nguyên logic implementation.
+- Kiểm tra thị giác bắt buộc ở 1440px và 390px; bổ sung 320px, 768px và 1024px để phát hiện lỗi reflow.
+- Kiểm tra keyboard: Tab/Shift+Tab, Enter/Space cho button, Escape cho menu modal, focus rõ ràng.
+- Kiểm tra console không có lỗi, không có hydration mismatch và request thiết yếu không thất bại.
+- Nếu một check thất bại từ trước, ghi nguyên nhân và phạm vi; không nói toàn bộ đã pass.
+
+### 2.4. Definition of Done
+
+- Chức năng được giao hoàn thành, đủ nội dung, không có thao tác giả thành công.
+- Layout 1440/390 không tràn ngang, không cắt/chồng chữ, link dẫn đúng nơi.
+- Các check phù hợp đã chạy; kết quả và giới hạn được báo rõ.
+- Tài liệu có cách chạy, build và cấu hình cần thiết; không yêu cầu reviewer đoán secrets.
+- Báo cáo cuối: thay đổi gì, đã kiểm tra gì, còn giới hạn nào; không dùng điểm số tự chấm làm bằng chứng chất lượng.
+
+## 3. Quy tắc thiết kế UI
+
+### 3.1. Design tokens
+
+- Tập trung token trong CSS variables hoặc theme hiện có; tránh lặp mã màu và kích thước ở nhiều file.
+- Baseline màu: primary `#2563EB`, hover `#1D4ED8`, heading `#0F172A`, body `#475569`, background `#FFFFFF`, surface `#F8FAFC`, pale `#EFF6FF`, border `#E2E8F0`.
+- Màu chữ phải đạt tương phản trên nền thực tế. Không dùng border rất nhạt làm chỉ dấu duy nhất để nhận diện input.
+- Spacing scale: 4, 8, 12, 16, 20, 24, 32, 48, 64, 80, 120px. Khác scale chỉ khi cần khớp thiết kế có căn cứ.
+- Radius baseline: button 10px, input 10–12px, card 16px, panel 20px. Không bo góc mọi thành phần một cách tùy tiện.
+- Border thường 1px; shadow nhẹ cho lớp nổi, không phủ bóng nặng lên toàn trang.
+
+### 3.2. Typography và container
+
+- Font baseline Inter, fallback system sans-serif, hỗ trợ đầy đủ tiếng Việt. Font lấy từ nguồn được phép dùng; ưu tiên self-host nếu có asset và giấy phép phù hợp.
+- Desktop content max-width 1200px trong viewport 1440px, tương ứng lề 120px.
+- Mobile 390px: lề 20px, nội dung 350px. Viewport nhỏ hơn không ép min-width 390px.
+- Hero desktop khoảng 54px/1.3, mobile 36px/1.3; section desktop 36px, mobile 30px; body 16–18px/1.5–1.6; chữ phụ 12–14px.
+- Dùng `clamp()` nếu cần scale liên tục. Không giảm chữ body xuống 10–12px để nhét nội dung.
+- Không đặt chiều cao cố định cho block chữ, card hoặc section có nội dung động. Dùng min-height có căn cứ, grid stretch và spacing để giữ nhịp.
+- Tránh từ cuối tiêu đề bị cô lập. Sửa copy/width/font hợp lý; không chèn hàng loạt `<br>` chỉ đẹp ở một viewport.
+- Ưu tiên CSS Grid/Flexbox; absolute positioning chỉ cho trang trí hoặc phần có lý do rõ ràng.
+
+### 3.3. Responsive và trạng thái
+
+- Mobile-first; breakpoint baseline 768px và 1024px, điều chỉnh theo nơi nội dung thực sự cần reflow.
+- Dịch vụ: 1 cột mobile, có thể 2 cột tablet, 3 cột desktop. Logo: 2×2 mobile, 4 logo cùng hàng desktop.
+- Hero: một cột mobile, copy trước visual; hai cột desktop. Không thu nhỏ toàn bộ desktop thành ảnh mobile.
+- Mobile CTA full-width khi thiết kế yêu cầu; kích thước nút 48–52px. Vùng bấm icon menu/close ít nhất 44×44px là quy tắc dự án.
+- Button có default, hover, focus-visible và disabled khi cần. Disabled chỉ dùng khi có trạng thái thật, không vô hiệu hóa CTA vĩnh viễn.
+- Form nếu tồn tại có default, focus, error, submitting và success. Spinner không làm thay đổi chiều rộng nút.
+- Không có scroll ngang ở 320–1440px, trừ component có chủ đích rõ như bảng lớn và có cơ chế truy cập.
+- Khi zoom/reflow, nội dung không mất và controls không che nhau.
+
+### 3.4. Semantics và assets
+
+- Dùng `header`, `nav`, `main`, `section`, `footer` đúng vai trò. Một H1 cho mỗi page theo quy ước dự án; H2 cho section, H3 cho card.
+- Dùng `<a>` cho điều hướng, `<button>` cho hành động. Không dùng div clickable thay button.
+- Icon SVG nhất quán về stroke và kích thước; icon trang trí `aria-hidden`, icon-only button có accessible name.
+- Ảnh có alt theo mục đích; ảnh trang trí alt rỗng. Không đưa cả giao diện hoặc text chính vào một ảnh raster.
+- Không sửa trực tiếp file SVG chứa nội dung không tin cậy để chèn HTML; sanitize/quản lý nguồn asset.
+
+## 4. Section trang chủ
+
+### 4.1. Thứ tự và hợp đồng section
+
+| Thứ tự | ID | Nội dung | Hành vi |
+|---|---|---|---|
+| 1 | Header | Logo, Giới thiệu, Dịch vụ, Lợi thế, Liên hệ | Logo về `/`; menu đến section đúng |
+| 2 | `hero` | Eyebrow, H1, mô tả, CTA chính/phụ, visual | CTA chính `#contact`; CTA phụ `#services` |
+| 3 | `social-proof` | Logo khách hàng/đối tác minh họa | Không giả mạo quan hệ khách hàng |
+| 4 | `about` | Giới thiệu ngắn và năng lực | Nội dung dễ quét, không lặp Hero |
+| 5 | `services` | 3 card dịch vụ | Link có đích thật hoặc CTA theo dịch vụ |
+| 6 | `advantages` | 3 lợi thế có giải thích | Không đưa cam kết/số liệu không có bằng chứng |
+| 7 | `contact` | Lời mời trao đổi, kênh liên hệ | Kênh thật khi được cung cấp, demo ghi rõ |
+| 8 | Footer | Thương hiệu, điều hướng, pháp lý, copyright | Mọi link hoạt động đúng |
+
+Liên hệ là phần bổ sung; 7 phần bắt buộc của đề vẫn phải hiện diện đầy đủ.
+
+### 4.2. Header
+
+- Desktop đủ logo, navigation và CTA Liên hệ; mobile giữ logo, CTA và nút mở menu rõ ràng.
+- Sticky header chỉ khi có trong thiết kế hoặc có lợi ích cụ thể. Nếu sticky, anchor dùng `scroll-margin-top` để tiêu đề không bị che.
+- Menu dùng dữ liệu chung cho desktop/mobile/footer; không tạo tên hoặc đích khác nhau vô lý.
+- Menu mobile đóng khi chọn link; không tạo body scroll lock bị kẹt sau khi đổi route/viewport.
+
+### 4.3. Hero
+
+- H1 baseline: “Giải pháp số cho doanh nghiệp của bạn.”
+- Mô tả: “Thiết kế website và phát triển phần mềm giúp doanh nghiệp kết nối khách hàng, tối ưu vận hành và phát triển bền vững.”
+- CTA: “Trao đổi dự án” và “Khám phá dịch vụ”. Mỗi CTA có destination xác định.
+- Visual dashboard là hình minh họa, không phải dashboard số liệu thật; không thêm KPI giả.
+- H1, mô tả và CTA phải dễ thấy ở phần đầu trang. Không cố nhét toàn Hero vào một màn hình bằng cách thu nhỏ chữ.
+
+### 4.4. Social Proof và giới thiệu
+
+- Logo minh họa baseline: orbit, LUMEN, vertex, MONO. Không tự dùng logo thương hiệu thật và nói đó là khách hàng.
+- Bản demo có ghi chú rõ ở tài liệu bàn giao; nếu xuất bản công khai phải phân biệt nội dung minh họa ngay trong trải nghiệm hoặc thay bằng dữ liệu được duyệt.
+- Giới thiệu tập trung nhu cầu, trải nghiệm và giá trị; khoảng 70–120 từ là định hướng biên tập, không bắt buộc nhồi đủ số từ.
+
+### 4.5. Dịch vụ và lợi thế
+
+- 3 dịch vụ: Thiết kế website, Phát triển phần mềm, Bảo trì & tối ưu.
+- Mỗi card có icon, title, mô tả ngắn và CTA nếu có đích thực. Không dùng cùng icon cho mọi loại nếu icon không diễn đạt được nội dung.
+- Desktop card cùng hàng có thể stretch bằng grid; không khóa chiều cao làm cắt nội dung khi zoom hoặc đổi copy.
+- 3 lợi thế: Lấy người dùng làm trung tâm, Minh bạch trong từng bước, Đồng hành sau bàn giao.
+- Mỗi lợi thế có một giải thích cụ thể; không dùng “100%”, “số 1”, số dự án hay lời chứng thực chưa được cung cấp.
+
+### 4.6. Liên hệ và Footer
+
+- Chọn một mô hình rõ: kênh email thật, form backend thật hoặc demo frontend ghi rõ chưa gửi.
+- `hello@nova.example` không dùng làm địa chỉ nhận email hoạt động. Không báo “Đã gửi thành công” sau timeout giả.
+- Nếu có form: tên, email, nội dung nhu cầu là baseline; chỉ yêu cầu trường cần thiết. Không bắt người dùng cung cấp số điện thoại nếu không có lý do.
+- Footer có link Privacy/Terms thực nếu các trang đã được giao; không để link placeholder. Cookie policy chỉ xuất hiện khi có nội dung phù hợp.
+- Link footer mobile đủ khoảng cách và vùng bấm; không ép bốn link vào một dòng chữ quá nhỏ.
+
+## 5. Các trang pháp lý
+
+### 5.1. Phạm vi và độ chính xác
+
+- Đây là quy tắc triển khai nội dung, không phải kết luận website đã tuân thủ luật.
+- Khi có triển khai thật, xác minh yêu cầu theo khu vực hoạt động, dữ liệu thu thập và dịch vụ đang dùng từ nguồn pháp lý hiện hành. Không tự khẳng định GDPR, luật Việt Nam hoặc một chuẩn cụ thể đều áp dụng.
+- Không tự tạo tên pháp nhân, mã số thuế, địa chỉ, đại diện, thời hạn lưu dữ liệu hay điều khoản giới hạn trách nhiệm.
+- Thông tin thiếu đặt placeholder có nghĩa như `[CẦN XÁC MINH: thời hạn lưu dữ liệu liên hệ]`; demo ghi rõ “Bản nháp — chưa áp dụng cho vận hành thực tế”.
+- Bản nháp demo phải noindex và không được công bố như văn bản pháp lý đã duyệt. Nội dung production cần chủ sở hữu xác nhận trước khi dùng.
+
+### 5.2. Privacy Policy
+
+Nội dung cần có và phải phản ánh hành vi thực tế:
+
+1. Đơn vị phụ trách dữ liệu và kênh liên hệ đã xác minh.
+2. Loại dữ liệu: trường form, log kỹ thuật, analytics/cookie nếu thực sự thu thập.
+3. Mục đích sử dụng cho từng loại; không ghi mục đích chung chung vượt phạm vi.
+4. Cách thu thập và nguồn dữ liệu; phân biệt người dùng cung cấp với dữ liệu tự động.
+5. Cơ sở xử lý/đồng ý nếu pháp luật áp dụng yêu cầu; không bịa cách xác định.
+6. Bên nhận, nhà cung cấp xử lý và chuyển dữ liệu nếu có thật.
+7. Thời gian lưu hoặc tiêu chí xác định; không tự hứa xóa sau một mốc chưa cấu hình.
+8. Quyền và cách yêu cầu truy cập, sửa, xóa hoặc rút lựa chọn trong phạm vi áp dụng.
+9. Biện pháp bảo vệ ở mức khái quát, không tiết lộ secrets hoặc hứa an toàn tuyệt đối.
+10. Ngày hiệu lực, cập nhật và cách thông báo thay đổi.
+
+### 5.3. Terms of Use
+
+- Nêu phạm vi website, cách sử dụng nội dung, sở hữu trí tuệ, hành vi bị cấm, liên kết bên ngoài và kênh hỗ trợ.
+- Không trình bày trang doanh nghiệp giới thiệu như sàn thương mại điện tử.
+- Không tạo điều khoản thanh toán, hoàn tiền, giao hàng hoặc SLA nếu website không cung cấp chức năng đó.
+- Các điều khoản trách nhiệm, tranh chấp và luật áp dụng cần nội dung được duyệt, không tự chọn.
+
+### 5.4. Cookie Policy và consent có điều kiện
+
+- Kiểm kê cookie/storage/script đang có trước khi viết chính sách hoặc banner.
+- Phân biệt cookie thiết yếu với analytics/marketing; không gọi tất cả cookie là thiết yếu.
+- Khi cần consent, script không thiết yếu không được chạy trước lựa chọn hợp lệ.
+- Có lựa chọn từ chối/chỉnh sửa rõ, dễ tìm; không dùng giao diện khiến từ chối khó hơn đáng kể.
+- Lưu lựa chọn và cho phép đổi lại; phiên bản consent thay đổi khi mục đích thay đổi.
+- Không thêm cookie banner vào demo không dùng cookie chỉ để tạo vẻ đầy đủ.
+
+### 5.5. Layout pháp lý
+
+- Dùng layout chung, H1 rõ, H2 theo mục, ngày cập nhật, đường dẫn liên hệ và liên kết từ footer.
+- Nội dung đọc max-width khoảng 720–800px desktop, lề mobile 20px, body ít nhất 16px.
+- TOC có thể dùng cho trang dài; link anchor và focus phải hoạt động.
+- Không giấu nội dung quan trọng sau tooltip, chữ quá nhỏ hoặc accordion mặc định không truy cập được.
+
+## 6. Tối ưu hiệu suất
+
+### 6.1. Mục tiêu và cách đo
+
+- MỤC TIÊU Core Web Vitals ngoài thực địa, tại percentile 75 và tách mobile/desktop: LCP ≤2.5s, INP ≤200ms, CLS ≤0.1.
+- Không tuyên bố đạt INP từ một lần chạy Lighthouse. TBT trong lab có thể giúp chẩn đoán nhưng không thay thế INP thực địa.
+- Lighthouse mobile Performance ≥90 là mục tiêu nội bộ, không phải chứng nhận SEO hoặc đảm bảo tốc độ cho mọi thiết bị.
+- Chạy trên production build, ghi URL, commit/build, thiết bị hoặc cấu hình giả lập, thời gian và điều kiện mạng. So sánh nhiều lần khi cần vì điểm có biến thiên.
+- Website chưa có traffic thực: ghi “chưa có dữ liệu field”, không suy diễn lab thành field pass.
+
+### 6.2. Ngân sách baseline của dự án
+
+| Hạng mục | Mục tiêu ban đầu | Xử lý nếu vượt |
+|---|---|---|
+| JS tải ban đầu trang chủ | ≤200KB gzip, tính cả vendor | Xác định thư viện/chunk gây tăng và tối ưu hoặc giải thích |
+| CSS tải ban đầu | ≤50KB gzip | Loại unused CSS và kiểm tra utility/config |
+| Asset raster Hero | ≤200KB nếu có | Chọn kích thước/codec phù hợp, giữ chất lượng |
+| Raster dưới fold | Khoảng ≤150KB/ảnh | Responsive sources, nén và lazy load |
+| Font critical | Tối đa 2 file/subset/weight thực sự cần | Bỏ weight dư hoặc dùng variable font phù hợp |
+
+Đây là ngân sách dự án, không phải ngưỡng chuẩn chung. Không hy sinh khả năng đọc hoặc chất lượng nội dung chỉ để đạt số.
+
+### 6.3. Asset, font và rendering
+
+- Không lazy-load ảnh LCP/Hero. Chỉ dùng fetch priority/preload cho tài nguyên critical được xác định; không preload mọi ảnh.
+- Ảnh có width/height hoặc aspect-ratio để dành chỗ. Dùng srcset/sizes hoặc image component của framework với cấu hình đúng.
+- Ảnh ngoài fold lazy-load; ưu tiên AVIF/WebP khi phù hợp và có fallback cần thiết.
+- SVG cho icon/visual phù hợp; không đưa ảnh base64 lớn vào JS/CSS.
+- Font dùng `font-display` phù hợp, fallback tốt và không tải nhiều weight không sử dụng. Không subset bỏ dấu tiếng Việt.
+- Import icon chọn lọc; không tải cả thư viện chỉ dùng 3 icon.
+- Tách code cho chức năng nặng dưới fold/route khác; không dynamic import nội dung chính khiến LCP chậm hoặc SEO rỗng.
+- Tránh render lại do context/global state quá rộng. Chỉ memoize khi có vấn đề đo được hoặc lý do rõ.
+- Không animation layout gây CLS; ưu tiên transform/opacity và reduced-motion.
+- Script third-party chỉ thêm khi có nhu cầu và cấu hình quyền riêng tư rõ; trì hoãn phần không critical.
+
+### 6.4. Cache và server có điều kiện
+
+- Asset có hash nội dung có thể cache dài/immutable; HTML dùng chiến lược phù hợp với cập nhật và hosting.
+- Bật gzip/Brotli nếu hạ tầng hỗ trợ. Không cache response chứa dữ liệu người dùng như public.
+- Không bật service worker/offline cache mặc định cho bài test nếu không cần; tránh trình duyệt giữ bản cũ gây khó review.
+- Không thêm lazy skeleton giả cho nội dung tĩnh có thể render ngay.
+
+## 7. Quy tắc bảo mật
+
+### 7.1. Frontend và dữ liệu không tin cậy
+
+- Không chứa API secret, token quản trị, mật khẩu hoặc connection string trong source/public bundle.
+- Không render HTML không tin cậy bằng `innerHTML`/`dangerouslySetInnerHTML`. Nếu rich text là nhu cầu thật, dùng sanitizer phù hợp, allowlist và kiểm tra theo ngữ cảnh.
+- Không dùng regex tự viết như giải pháp duy nhất để chống XSS.
+- Validate URL theo scheme/host được phép; không đưa dữ liệu người dùng vào redirect tùy ý hoặc `javascript:` URL.
+- Không dùng `eval`, `new Function` hoặc thực thi script lấy từ dữ liệu/CMS.
+- Không coi kiểm tra role, ẩn nút hoặc validation frontend là biện pháp phân quyền bảo mật.
+- Nội dung demo không được bật gửi dữ liệu thật ngầm. Không log tên, email hoặc toàn bộ payload form ra console production.
+
+### 7.2. API/form nếu có backend
+
+- Validate ở server cả kiểu, độ dài và trường cho phép; frontend validation chỉ hỗ trợ UX.
+- Baseline form: tên 2–100 ký tự, email tối đa 254 ký tự, nội dung 10–2000 ký tự; giới hạn này là chính sách dự án và phải nhất quán client/server.
+- Email validate bằng công cụ phù hợp; không dùng regex cực đoan loại bỏ địa chỉ hợp lệ. Trim khoảng trắng ngoài, không tự sửa nội dung người dùng không cần thiết.
+- Rate limit endpoint public theo mô hình threat thực tế; dùng honeypot/anti-abuse khi cần, CAPTCHA chỉ khi có căn cứ.
+- Không ghép input vào SQL hoặc shell. Dùng query có tham số và tránh command execution cho luồng contact.
+- Nếu gửi email qua backend, không cho input điều khiển header From hoặc recipient tùy ý; ngăn header injection và giới hạn recipient tại server.
+- Xử lý lỗi trả thông báo an toàn; không lộ stack trace, token hay thông tin database.
+- Không retry mù request POST; thiết kế idempotency/dedup nếu có retry hoặc thao tác quan trọng.
+
+### 7.3. Session, CSRF, CORS có điều kiện
+
+- Website không đăng nhập thì không tạo JWT/session chỉ để đủ checklist.
+- Nếu có auth, server kiểm tra danh tính/quyền cho từng request; token hết hạn và logout phải có hành vi rõ.
+- Với session cookie, cân nhắc HttpOnly, Secure và SameSite phù hợp. Không dùng localStorage như mặc định để chứa session token nhạy cảm.
+- Chống CSRF cho request đổi trạng thái có xác thực bằng cookie theo kiến trúc; SameSite hỗ trợ nhưng không tự động thay mọi biện pháp CSRF.
+- Không khẳng định mọi form anonymous đều cần CSRF token; áp dụng theo credential và threat model.
+- CORS không thay thế auth, không cho origin tùy ý với credentials. Không phản chiếu Origin không kiểm tra.
+
+### 7.4. Hạ tầng có điều kiện
+
+- Production dùng HTTPS. HSTS chỉ cấu hình sau khi xác nhận domain/subdomain đều sẵn sàng HTTPS; không bật preload tùy tiện.
+- Cấu hình CSP theo tài nguyên thật; hạn chế inline script, không vô hiệu hóa CSP bằng wildcard cho tiện. Với JSON-LD/inline script dùng nonce/hash hoặc giải pháp framework phù hợp.
+- Xem xét `X-Content-Type-Options: nosniff`, Referrer-Policy, Permissions-Policy và CSP `frame-ancestors` theo khả năng hosting và nhu cầu nhúng.
+- Kiểm tra dependency audit nếu công cụ đã có; phân biệt lỗ hổng runtime với dev-only. Không auto-upgrade major bằng lệnh fix force.
+- Không upload dữ liệu người dùng hoặc repository riêng tới dịch vụ phân tích ngoài khi chưa được phép.
+
+## 8. Quy tắc thiết kế UX
+
+### 8.1. Hành trình và độ trung thực
+
+- Hành trình chính: hiểu doanh nghiệp → xem dịch vụ → nhận biết lợi thế → chọn liên hệ.
+- Một CTA chính nhất quán “Trao đổi dự án”; CTA phụ giúp khám phá. Không để mỗi section có một hành động cạnh tranh không liên quan.
+- Mọi control có phản hồi và đích thật. Không tạo nút “Tìm hiểu thêm” mở trang trống hoặc thông báo giả.
+- Nội dung ngắn, cụ thể, dùng tiếng Việt thống nhất. Không hứa khả năng dịch vụ chưa có bằng chứng.
+- Người dùng có thể quay lại, đóng menu và thoát thao tác; không ép popup/auto-scroll bất ngờ.
+
+### 8.2. Keyboard và accessibility
+
+- Mục tiêu accessibility: WCAG 2.2 AA cho phần liên quan; không tuyên bố certified/compliant chỉ từ kiểm tra tự động.
+- Text thường tương phản ít nhất 4.5:1; large text 3:1 theo định nghĩa WCAG. Thành phần UI và chỉ dấu trạng thái quan trọng cần tương phản phù hợp, không chỉ dựa vào màu.
+- Vùng bấm 44×44px là tiêu chuẩn tiện dụng nội bộ; không ghi nhầm đây là tối thiểu AA của WCAG 2.2. Target Size Minimum AA có ngưỡng 24×24px và ngoại lệ theo chuẩn.
+- Có skip link đến main. Thứ tự focus theo thứ tự DOM và hành trình đọc, không dùng tabindex dương để sửa layout.
+- Focus-visible rõ và không bị sticky header/modal che.
+- Menu modal: accessible name, trạng thái expanded, quản lý focus, Escape, background không tương tác và trả focus về nút mở. Menu dạng disclosure không modal thì không áp focus trap không cần thiết.
+- Tôn trọng prefers-reduced-motion; không bắt animation dài để truy cập nội dung.
+- Không chặn zoom; kiểm tra 200% zoom và reflow hẹp khi phù hợp.
+
+### 8.3. Form nếu được giao
+
+- Label thật liên kết với input; placeholder chỉ là ví dụ, không thay label.
+- Dùng type, autocomplete và inputmode phù hợp; không yêu cầu nhập lại dữ liệu không cần thiết.
+- Validation hiển thị gần trường, thông báo có cách sửa, liên kết bằng aria-describedby; không dùng màu đỏ làm tín hiệu duy nhất.
+- Khi submit lỗi, giữ dữ liệu; focus vào error summary/field đầu lỗi theo cách nhất quán.
+- Submitting có trạng thái rõ, ngăn gửi trùng nhưng không khóa người dùng vô hạn; timeout/lỗi cho phép thử lại.
+- Thành công chỉ hiển thị sau phản hồi xác nhận từ backend. Nếu demo, thông báo “Bản demo — yêu cầu chưa được gửi”.
+- Có thông báo trạng thái cho assistive technology; không lạm dụng aria-live assertive.
+- Checkbox đọc Privacy không tự động là đồng ý marketing. Không precheck consent tùy chọn.
+
+### 8.4. Thử nghiệm UX tối thiểu
+
+- Từ Hero đến liên hệ không gặp link chết hoặc đoạn nội dung khó hiểu.
+- Dùng chỉ bàn phím vẫn mở/đóng menu và đi tới các trang được giao.
+- Mobile không cần pinch zoom để đọc body hoặc bấm controls.
+- Nếu mạng lỗi, người dùng biết chuyện gì xảy ra và có bước tiếp theo.
+- Chỉ thu analytics được duyệt; không lưu field form chứa PII trong event payload.
+
+## 9. Thiết kế chuẩn SEO
+
+### 9.1. Nội dung và khả năng crawl
+
+- Nội dung chính render thành semantic HTML, ưu tiên SSG/SSR/prerender theo stack. Không để toàn page chỉ là canvas/ảnh hoặc yêu cầu tương tác mới có nội dung.
+- Link nội bộ là anchor có href thật, không chỉ click handler. Trang quan trọng có đường đi từ navigation/footer phù hợp.
+- Một H1/page theo quy ước dự án, heading theo cấu trúc nội dung. Không nhảy heading chỉ để chọn cỡ chữ.
+- Copy tự nhiên, có ích; không nhồi keyword, lặp địa danh, text ẩn, nội dung doorway hoặc tạo hàng loạt page rỗng.
+- Nội dung mobile và desktop có cùng thông tin cốt lõi; không loại bỏ đoạn quan trọng chỉ để tiết kiệm chiều cao.
+
+### 9.2. Metadata
+
+- Mỗi page indexable có title và description riêng, phản ánh nội dung thật.
+- Title gợi ý 45–60 ký tự, description 140–160 ký tự là định hướng biên tập, không phải giới hạn bắt buộc của Google hoặc bảo đảm không bị cắt.
+- Ví dụ homepage title: `NOVA DIGITAL | Website & giải pháp số cho doanh nghiệp`.
+- Metadata tập trung theo route; không copy cùng description cho mọi trang.
+- Đặt `lang="vi"`, viewport responsive, favicon và theme-color khi phù hợp.
+- Open Graph gồm title, description, type, URL và ảnh có quyền sử dụng; social metadata theo nhu cầu chia sẻ.
+- Không tự chèn keywords meta hoặc claim đó là yếu tố tăng thứ hạng.
+
+### 9.3. Canonical, robots và sitemap
+
+- Production hostname phải được cung cấp/xác minh. Không dùng `nova.example` như domain production để canonical hoặc sitemap.
+- Canonical absolute URL đúng route; không canonical mọi page về homepage.
+- Production sitemap chứa URL canonical, indexable, status 200; loại preview, auth, 404 và bản nháp pháp lý. Lastmod phản ánh cập nhật thật, không reset theo mỗi lần build vô nghĩa.
+- robots.txt kiểm soát crawl, không bảo vệ dữ liệu hoặc đảm bảo xóa page khỏi index.
+- Muốn noindex dùng meta robots hoặc X-Robots-Tag phù hợp và cho crawler thấy chỉ dẫn; đừng chặn crawl rồi kỳ vọng noindex được đọc.
+- Staging/demo dùng noindex; nội dung riêng tư cần access control nếu thực sự riêng tư, không chỉ robots.
+- Khi production được duyệt, kiểm tra không vô tình còn noindex. Không tự public demo chỉ để kiểm tra SEO.
+- URL không tồn tại trả 404; nội dung chuyển địa chỉ dùng redirect phù hợp, tránh chuỗi redirect.
+
+### 9.4. Structured data
+
+- Chỉ thêm JSON-LD phù hợp với nội dung hiển thị và dữ liệu đã xác minh.
+- Organization/WebSite có thể phù hợp sau khi có tên doanh nghiệp, URL, logo thật. Không tạo địa chỉ, rating, review, sameAs hoặc ngày thành lập giả.
+- BreadcrumbList chỉ cho trang có breadcrumb thực. Không tạo Service/Product schema chỉ để mong rich results nếu dữ liệu không phù hợp.
+- Không hứa FAQ schema hoặc structured data sẽ được Google hiển thị rich result.
+- Serialize dữ liệu an toàn trước khi đưa vào script JSON-LD; không nối chuỗi input không tin cậy vào HTML.
+- Validate syntax và công cụ phù hợp. Dữ liệu demo không được biến thành tuyên bố doanh nghiệp thật.
+
+### 9.5. Kiểm tra SEO và tiêu chí bàn giao
+
+- View source/HTML response có title, description, H1 và nội dung chính theo chiến lược render đã chọn.
+- Canonical, OG URL, sitemap và robots phù hợp môi trường thực tế.
+- Không có internal link chết, title trùng hoặc route indexable rỗng trong phạm vi được giao.
+- Ảnh có alt có nghĩa; nội dung quan trọng là text; mobile không bị cắt.
+- Lighthouse SEO chỉ là một kiểm tra hỗ trợ, không thay kiểm tra index hoặc cam kết thứ hạng.
+- Search Console/Rich Results Test chỉ dùng khi có URL hợp lệ và quyền cần thiết; ghi rõ nếu chưa kiểm tra.
+
+## 10. Checklist tổng hợp trước khi bàn giao
+
+### Bài test
+
+- [ ] Desktop 1440px và mobile 390px được kiểm tra bằng ảnh/viewport thực.
+- [ ] Đủ Header, Hero + CTA, Social Proof, Giới thiệu, Dịch vụ dạng Grid/Card, Lợi thế, Footer.
+- [ ] Menu, CTA và liên hệ có hành vi rõ ràng; không dùng placeholder như chức năng thật.
+- [ ] Không tràn ngang, chồng chữ, cắt nội dung hoặc vùng bấm khó dùng.
+- [ ] Diagram do ứng viên tự thực hiện; không nhận AI-generated diagram là tự vẽ.
+
+### Code và chất lượng
+
+- [ ] Lint/typecheck/build có thật trong repository đã được chạy theo phạm vi.
+- [ ] Test hành vi quan trọng và kiểm tra keyboard phù hợp đã hoàn thành.
+- [ ] Không secrets, debug logs hoặc dependency thay đổi không có lý do.
+- [ ] Quy trình chạy/build/config được ghi rõ.
+
+### Website mở rộng
+
+- [ ] Trang pháp lý phản ánh chức năng thực; bản nháp minh họa được phân biệt và noindex.
+- [ ] Performance report có điều kiện đo; không nhầm lab với field.
+- [ ] SEO đúng môi trường, không canonical tới domain giả và không hứa thứ hạng.
+- [ ] Quy tắc security chỉ được đánh dấu đạt sau khi có bằng chứng kiểm tra phù hợp.
+- [ ] Các phần không áp dụng ghi N/A kèm lý do; không dựng thêm tính năng để tích checklist.
+
+## 11. Nguồn chuẩn và cách cập nhật
+
+Các quy tắc project như budget JS, 44px touch target, độ dài field và breakpoint là lựa chọn của dự án, không phải tiêu chuẩn pháp lý hay ngưỡng chung bắt buộc. Khi stack/chuẩn thay đổi, kiểm tra tài liệu chính thức trước khi đổi implementation.
+
+- Codex và hướng dẫn AGENTS.md: https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide
+- Web Vitals và phân biệt lab/field: https://web.dev/articles/vitals
+- WCAG 2.2: https://www.w3.org/TR/WCAG22/
+- Google SEO Starter Guide: https://developers.google.com/search/docs/fundamentals/seo-starter-guide
+- Google hướng dẫn developer: https://developers.google.com/search/docs/fundamentals/get-started-developers
+- OWASP Cheat Sheet Series: https://cheatsheetseries.owasp.org/
+
+Không xem một checklist đã điền là chứng nhận accessibility, security hoặc pháp lý. Báo bằng chứng thực tế, phạm vi kiểm tra và phần chưa xác minh.
